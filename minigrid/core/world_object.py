@@ -16,6 +16,7 @@ from minigrid.utils.rendering import (
     point_in_circle,
     point_in_line,
     point_in_rect,
+    point_in_triangle
 )
 
 if TYPE_CHECKING:
@@ -80,6 +81,8 @@ class WorldObj:
         is_open = state == 0
         is_locked = state == 2
 
+        is_extended = state == 0
+
         if obj_type == "wall":
             v = Wall(color)
         elif obj_type == "floor":
@@ -96,6 +99,8 @@ class WorldObj:
             v = Goal()
         elif obj_type == "lava":
             v = Lava()
+        elif obj_type == "spikefloor":
+            v = SpikeFloor(is_extended)
         else:
             assert False, "unknown object type in decode '%s'" % obj_type
 
@@ -291,3 +296,29 @@ class Box(WorldObj):
         # Replace the box by its contents
         env.grid.set(pos[0], pos[1], self.contains)
         return True
+
+
+
+# Custom objects below
+
+class SpikeFloor(WorldObj):
+    def __init__(self, is_extended: bool = False):
+        super().__init__("spikefloor", "white")
+        self.is_extended = is_extended
+
+    def can_overlap(self):
+        return True
+
+    def encode(self):
+        # State: 0 = not extended, 1 = extended
+        state = 1 if self.is_extended else 0
+        return (OBJECT_TO_IDX[self.type], COLOR_TO_IDX[self.color], state)
+
+    def render(self, img):
+        c = COLORS[self.color]
+
+        if self.is_extended:
+            fill_coords(img, point_in_triangle((0.16, 0.84), (0.84, 0.84), (0.5, 0.16)), c)
+        else:
+            fill_coords(img, point_in_rect(0.16, 0.84, 0.82, 0.92), c)
+        
