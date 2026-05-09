@@ -562,6 +562,13 @@ def register_minigrid_envs():
         entry_point="minigrid.envs:UnlockPickupEnv",
     )
 
+    # SpikeCrossing
+    # ----------------------------------------
+    register(
+        id="MiniGrid-SpikeCrossing-v0",
+        entry_point="minigrid.envs:SpikeCrossing",
+    )
+
     # WaveFunctionCollapse
     # ----------------------------------------
     register_wfc_presets(WFC_PRESETS, register)

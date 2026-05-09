@@ -9,7 +9,7 @@ from minigrid.minigrid_env import MiniGridEnv
 
 from minigrid.wrappers import DeadlySpikes
 
-class SimpleEnv(MiniGridEnv):
+class SpikeCrossing(MiniGridEnv):
     def __init__(
         self,
         size=8,
@@ -64,7 +64,7 @@ class SimpleEnv(MiniGridEnv):
 
 
 def main():
-    env = SimpleEnv(render_mode="human")
+    env = SpikeCrossing(render_mode="human")
     env = DeadlySpikes(env, 0.2)
 
     # enable manual control for testing
