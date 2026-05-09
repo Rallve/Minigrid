@@ -901,3 +901,63 @@ class DeadlySpikes(Wrapper):
             terminated = True
 
         return obs, reward, terminated, truncated, info
+    
+
+class IntrinsicActionBonus(gym.Wrapper):
+    """
+    Wrapper which adds an intrinsic exploration bonus.
+    This is a reward to encourage exploration of less
+    visited (state,action) pairs.
+
+    Example:
+        >>> import gymnasium as gym
+        >>> from minigrid.wrappers import ActionBonus
+        >>> env = gym.make("MiniGrid-Empty-5x5-v0")
+        >>> _, _ = env.reset(seed=0)
+        >>> _, reward, _, _, _ = env.step(1)
+        >>> print(reward)
+        0
+        >>> _, reward, _, _, _ = env.step(1)
+        >>> print(reward)
+        0
+        >>> env_bonus = ActionBonus(env)
+        >>> _, _ = env_bonus.reset(seed=0)
+        >>> _, reward, _, _, _ = env_bonus.step(1)
+        >>> print(reward)
+        1.0
+        >>> _, reward, _, _, _ = env_bonus.step(1)
+        >>> print(reward)
+        1.0
+    """
+
+    def __init__(self, env):
+        """A wrapper that adds an intrinsic exploration bonus to less visited (state,action) pairs.
+
+        Args:
+            env: The environment to apply the wrapper
+        """
+        super().__init__(env)
+        self.counts = {}
+
+    def step(self, action):
+        """Steps through the environment with `action`."""
+        obs, reward, terminated, truncated, info = self.env.step(action)
+
+        info["extrinsic reward"] = reward
+
+        env = self.unwrapped
+        tup = (tuple(env.agent_pos), env.agent_dir, action)
+
+        # Get the count for this (s,a) pair
+        pre_count = 0
+        if tup in self.counts:
+            pre_count = self.counts[tup]
+
+        # Update the count for this (s,a) pair
+        new_count = pre_count + 1
+        self.counts[tup] = new_count
+
+        bonus = 1 / math.sqrt(new_count)
+        reward += bonus
+
+        return obs, reward, terminated, truncated, info
