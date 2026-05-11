@@ -930,7 +930,7 @@ class IntrinsicActionBonus(gym.Wrapper):
         1.0
     """
 
-    def __init__(self, env):
+    def __init__(self, env, scale=1):
         """A wrapper that adds an intrinsic exploration bonus to less visited (state,action) pairs.
 
         Args:
@@ -938,6 +938,7 @@ class IntrinsicActionBonus(gym.Wrapper):
         """
         super().__init__(env)
         self.counts = {}
+        self.scale = scale
 
     def step(self, action):
         """Steps through the environment with `action`."""
@@ -946,7 +947,7 @@ class IntrinsicActionBonus(gym.Wrapper):
         info["extrinsic reward"] = reward
 
         env = self.unwrapped
-        tup = (tuple(env.agent_pos), env.agent_dir, action)
+        tup = (tuple(env.agent_pos))
 
         # Get the count for this (s,a) pair
         pre_count = 0
@@ -958,6 +959,6 @@ class IntrinsicActionBonus(gym.Wrapper):
         self.counts[tup] = new_count
 
         bonus = 1 / math.sqrt(new_count)
-        reward += bonus
+        reward += self.scale * bonus
 
         return obs, reward, terminated, truncated, info
