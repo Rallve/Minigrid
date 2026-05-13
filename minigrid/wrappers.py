@@ -882,27 +882,6 @@ class NoDeath(Wrapper):
         return obs, reward, terminated, truncated, info
 
 
-class DeadlySpikes(Wrapper):
-    def __init__(self, env, prob=0.1):
-        super().__init__(env)
-        self.prob = prob
-
-    def step(self, action):
-        for cell in self.unwrapped.grid.grid:
-            if cell is not None and cell.type == "spikefloor":
-                cell.is_extended = self.np_random.choice([True, False], p=[self.prob, 1 - self.prob])
-        
-        obs, reward, terminated, truncated, info = self.env.step(action)
-
-        current_cell = self.unwrapped.grid.get(*self.unwrapped.agent_pos)
-        on_spike = current_cell is not None and current_cell.type == "spikefloor" and current_cell.is_extended
-
-        if on_spike:
-            terminated = True
-
-        return obs, reward, terminated, truncated, info
-    
-
 class IntrinsicActionBonus(gym.Wrapper):
     """
     Wrapper which adds an intrinsic exploration bonus.
