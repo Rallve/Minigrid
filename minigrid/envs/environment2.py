@@ -10,6 +10,9 @@ from minigrid.minigrid_env import MiniGridEnv
 
 from minigrid.wrappers import DeadlySpikes
 
+# Two potential issues:
+# 1. Obstacles may avoid the agent
+# 2. Walking into a wall may terminate the episode
 class Environment2(MiniGridEnv):
     def __init__(
         self,
@@ -90,7 +93,7 @@ class Environment2(MiniGridEnv):
             top = tuple(map(add, old_pos, (-1, -1)))
 
             try:
-                self.place_obj(
+                self.place_obj( # IMPORTANT: obstacles may avoid the agent! FIX THIS LATER
                     self.obstacles[i_obst], top=top, size=(3, 3), max_tries=100
                 )
                 self.grid.set(old_pos[0], old_pos[1], None)
