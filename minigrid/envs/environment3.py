@@ -12,12 +12,8 @@ from minigrid.minigrid_env import MiniGridEnv
 
 from minigrid.wrappers import DeadlySpikes
 
-# Known issues:
-# Walking into a wall terminates the episode.
-# Lava will not terminate the episode if it moves into the agent.
-# Walking towards a lava object terminates the episode, even if the lava should have moved in the same timestep.
-# Lava deletes walls.
-class Environment3(MiniGridEnv):
+
+class FlowingLava(MiniGridEnv):
     def __init__(
         self,
         size=9,
@@ -44,6 +40,8 @@ class Environment3(MiniGridEnv):
             max_steps=max_steps,
             **kwargs,
         )
+
+        self.grid_memory = [[None for _ in range(self.width)] for _ in range(self.height)]
 
     @staticmethod
     def _gen_mission():
@@ -72,12 +70,6 @@ class Environment3(MiniGridEnv):
         
         # Place obstacles
         self.obstacles = []
-        
-        self.obstacles.append(Lava())
-        self.put_obj(self.obstacles[0], 1, 1)
-
-        self.obstacles.append(Lava())
-        self.put_obj(self.obstacles[1], self.width - 2, 1)
 
         self.mission = "grand mission"
 
@@ -119,60 +111,77 @@ class Environment3(MiniGridEnv):
             obj.cur_pos = pos
 
         return pos
+    
+    def _update_grid_memory(self, pos):
+        cell = self.grid.get(*pos)
+        if self.grid_memory[pos[1]][pos[0]] is None:
+            if cell is not None:
+                self.grid_memory[pos[1]][pos[0]] = cell.type
+            else:
+                self.grid_memory[pos[1]][pos[0]] = "none"
 
     def step(self, action):
         # Invalid action
         if action >= self.action_space.n:
             action = 0
 
-        # Check if there is an obstacle in front of the agent
-        front_cell = self.grid.get(*self.front_pos)
-        not_clear = front_cell and (front_cell.type != "goal" and front_cell.type != "key" and front_cell.type != "door")
+        delete_list = []
 
         # Update obstacle positions
-        for i_obst in range(len(self.obstacles) - 1, -1, -1):
+        for i_obst in range(len(self.obstacles)):
             old_pos = self.obstacles[i_obst].cur_pos
+            new_pos = (old_pos[0] + 1, old_pos[1])
+
+            if new_pos[0] < self.width:
+                self._update_grid_memory(new_pos)
 
             if old_pos[0] == self.width - 1:
-                self.obstacles.pop(i_obst)
-                self.grid.set(old_pos[0], old_pos[1], Wall())
+                delete_list.append(i_obst)
             else:
                 try:
                     self._move_obj(
                         self.obstacles[i_obst], max_tries=100
                     )
                     self.grid.set(old_pos[0], old_pos[1], None)
-                    print("pos: ", self.obstacles[i_obst].cur_pos)
                 except Exception:
                     print("failed to place obstacle")
                     pass
+            
+            if self.grid_memory[old_pos[1]][old_pos[0]] != "none":
+                self.grid.set(old_pos[0], old_pos[1], Wall())
+        
+        for i_obst in range(len(delete_list) - 1, -1, -1):
+            self.obstacles.pop(delete_list[i_obst])
 
+        # Place new obstacles
         if random.random() < self.prob:
             self.obstacles.append(Lava())
             self.put_obj(self.obstacles[-1], 0, 2)
+            self._update_grid_memory((0, 2))
         
         if random.random() < self.prob:
             self.obstacles.append(Lava())
             self.put_obj(self.obstacles[-1], 0, 4)
+            self._update_grid_memory((0, 4))
         
         if random.random() < self.prob:
             self.obstacles.append(Lava())
             self.put_obj(self.obstacles[-1], 0, 6)
+            self._update_grid_memory((0, 6))
 
         # Update the agent's position/direction
         obs, reward, terminated, truncated, info = super().step(action)
-
-        # If the agent tried to walk over an obstacle or wall
-        if action == self.actions.forward and not_clear:
-            #reward = -1
+        
+        # Terminate the episode if the agent touches lava
+        agent_cell = self.grid.get(*self.agent_pos)
+        if agent_cell and agent_cell.type == "lava":
             terminated = True
-            return obs, reward, terminated, truncated, info
 
         return obs, reward, terminated, truncated, info
 
 
 def main():
-    env = Environment3(render_mode="human")
+    env = FlowingLava(render_mode="human")
 
     # enable manual control for testing
     manual_control = ManualControl(env)
