@@ -6,11 +6,9 @@ import random
 from minigrid.core.constants import COLOR_NAMES
 from minigrid.core.grid import Grid
 from minigrid.core.mission import MissionSpace
-from minigrid.core.world_object import Door, Goal, Key, Lava, Wall, SpikeFloor, WorldObj
+from minigrid.core.world_object import Goal, Lava, Wall, WorldObj
 from minigrid.manual_control import ManualControl
 from minigrid.minigrid_env import MiniGridEnv
-
-from minigrid.wrappers import DeadlySpikes
 
 
 class FlowingLava(MiniGridEnv):
@@ -19,7 +17,7 @@ class FlowingLava(MiniGridEnv):
         size=9,
         agent_start_pos=(2, 7),
         agent_start_dir=0,
-        prob=0.2,
+        prob=0.1,
         max_steps: int | None = None,
         **kwargs,
     ):
