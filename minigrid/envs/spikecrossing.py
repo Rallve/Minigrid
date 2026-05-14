@@ -7,7 +7,6 @@ from minigrid.core.world_object import Door, Goal, Key, Wall, SpikeFloor
 from minigrid.manual_control import ManualControl
 from minigrid.minigrid_env import MiniGridEnv
 
-from minigrid.wrappers import DeadlySpikes
 
 class SpikeCrossing(MiniGridEnv):
     def __init__(
@@ -16,10 +15,12 @@ class SpikeCrossing(MiniGridEnv):
         agent_start_pos=(1, 6),
         agent_start_dir=0,
         max_steps: int | None = None,
+        prob=0.1,
         **kwargs,
     ):
         self.agent_start_pos = agent_start_pos
         self.agent_start_dir = agent_start_dir
+        self.prob = prob
 
         mission_space = MissionSpace(mission_func=self._gen_mission)
 
@@ -62,10 +63,24 @@ class SpikeCrossing(MiniGridEnv):
 
         self.mission = "grand mission"
 
+    def step(self, action):
+        for cell in self.unwrapped.grid.grid:
+            if cell is not None and cell.type == "spikefloor":
+                cell.is_extended = self.np_random.choice([True, False], p=[self.prob, 1 - self.prob])
+        
+        obs, reward, terminated, truncated, info = super().step(action)
+
+        current_cell = self.unwrapped.grid.get(*self.unwrapped.agent_pos)
+        on_spike = current_cell is not None and current_cell.type == "spikefloor" and current_cell.is_extended
+
+        if on_spike:
+            terminated = True
+
+        return obs, reward, terminated, truncated, info
+
 
 def main():
-    env = SpikeCrossing(render_mode="human")
-    env = DeadlySpikes(env, 0.2)
+    env = SpikeCrossing(render_mode="human", prob=0.1)
 
     # enable manual control for testing
     manual_control = ManualControl(env)
